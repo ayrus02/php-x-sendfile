@@ -105,6 +105,74 @@ class PhpXsendfile
 
         exit();
     }
+    
+    /**
+     * Inline Large Files
+     *
+     * @param string $file
+     * @param string|null $fileName
+     */
+    public function file(string $file, string $fileName = null): void
+    {
+        $file = $this->absolutePath($file);
+        $fileName = $fileName ?? basename($file);
+
+        if ($this->config['cache']) {
+            if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
+                $modifiedSince = $_SERVER['HTTP_IF_MODIFIED_SINCE'];
+                $modifiedSince = strtotime($modifiedSince);
+
+                if (filemtime($file) == $modifiedSince) {
+                    header("HTTP/1.1 304: Not Modified");
+
+                    return;
+                }
+            }
+
+            if (isset($_SERVER['IF-NONE-MATCH']) and ($_SERVER['IF-NONE-MATCH'] == md5(filemtime($file)))) {
+                header("HTTP/1.1 304: Not Modified");
+
+                return;
+            }
+        }
+
+        $this->setContentType($file);
+        $this->setContentLength($file);
+        $this->setContentDisposition($fileName, isInline: true);
+        $this->setCacheHeaders($file);
+        $this->setExtraHeaders();
+
+        if ($this->server) {
+            $uri = $this->pathToUri($file);
+
+            switch ($this->server) {
+                case self::SERVER_APACHE:
+                    header("X-Sendfile: $uri");
+                    break;
+
+                case self::SERVER_NGINX:
+                    header("X-Accel-Redirect: $uri");
+                    break;
+
+                case self::SERVER_LIGHTTPD:
+                    header("X-LIGHTTPD-send-file: $uri");
+                    break;
+
+                case self::SERVER_LITESPEED:
+                    header("X-LiteSpeed-Location: $uri");
+                    break;
+            }
+        }
+        else {
+            // unknown server, use php stream
+
+            ob_clean();
+            flush();
+            readfile($file);
+        }
+
+        exit();
+    }
 
     public function setHeader(array $headers): PhpXsendfile
     {
@@ -194,22 +262,23 @@ class PhpXsendfile
      *
      * @param string $fileName
      */
-    protected function setContentDisposition(string $fileName): void
+    protected function setContentDisposition(string $fileName, bool $isInline = false): void
     {
         $userAgent = $_SERVER['HTTP_USER_AGENT'];
         $encodedFileName = rawurlencode($fileName);
+        $directive = ($isInline ? 'inline' : 'attachment');
 
         if (false !== strpos($userAgent, 'MSIE') or preg_match("/Trident\/7.0/", $userAgent)) {
             // ie
-            header('Content-Disposition: attachment; filename="' . $encodedFileName . '"');
+            header('Content-Disposition: '.$directive.'; filename="' . $encodedFileName . '"');
         }
         else if (false !== strpos($userAgent, "Firefox")) {
             // firefox
-            header('Content-Disposition: attachment; filename*="utf8\'\'' . $encodedFileName . '"');
+            header('Content-Disposition: '.$directive.'; filename*="utf8\'\'' . $encodedFileName . '"');
         }
         else {
             // safari and chrome
-            header('Content-Disposition: attachment; filename="' . $fileName . '"');
+            header('Content-Disposition: '.$directive.'; filename="' . $fileName . '"');
         }
     }
 

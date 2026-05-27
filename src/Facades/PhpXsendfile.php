@@ -10,6 +10,7 @@ use Mostafaznv\PhpXsendfile\PhpXsendfile as PhpXsendfileInstance;
  * PhpXsendfile Facade
  *
  * @method static void download(string $file, string $fileName = null)
+ * @method static void file(string $file, string $fileName = null)
  * @method static self setHeader(array $headers)
  *
  * @package Mostafaznv\PhpXsendfile\Facades
