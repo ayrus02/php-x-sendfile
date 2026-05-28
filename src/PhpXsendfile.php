@@ -116,7 +116,7 @@ class PhpXsendfile
     {
         $file = $this->absolutePath($file);
         $fileName = $fileName ?? basename($file);
-
+        
         if ($this->config['cache']) {
             if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
                 $modifiedSince = $_SERVER['HTTP_IF_MODIFIED_SINCE'];
@@ -315,7 +315,10 @@ class PhpXsendfile
      */
     protected function absolutePath(string $path): string
     {
-        return $this->basePath() . $this->pathToUri($path);
+        if (str_contains($path, $this->basePath()) || str_contains($path, str_replace('\\','/',$this->basePath())))
+            return($path);
+        else
+            return $this->basePath() . $this->pathToUri($path);
     }
 
     /**
@@ -326,7 +329,10 @@ class PhpXsendfile
      */
     protected function pathToUri($path): string
     {
-        return '/' . ltrim(str_replace([$this->basePath(), '\\'], ['', '/'], $path), '/');
+        if (substr($path, 1, 1) === ':') // if windows drive letter detected then return path as is
+            return($path);
+        else
+            return '/' . ltrim(str_replace([$this->basePath(), '\\'], ['', '/'], $path), '/');
     }
 
     /**
@@ -340,6 +346,6 @@ class PhpXsendfile
             return realpath($this->config['base-path']);
         }
 
-        return $_SERVER['DOCUMENT_ROOT'];
+        return str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT']);
     }
 }
