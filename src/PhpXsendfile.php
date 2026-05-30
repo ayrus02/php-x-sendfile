@@ -315,7 +315,11 @@ class PhpXsendfile
      */
     protected function absolutePath(string $path): string
     {
-        if (str_contains($path, $this->basePath()) || str_contains($path, str_replace('\\','/',$this->basePath())))
+        $script_path = dirname($_SERVER['SCRIPT_FILENAME']);
+        
+        if (str_contains($path, $script_path))
+            return($path);
+        elseif (str_contains($path, $this->basePath()) || str_contains($path, str_replace('\\','/',$this->basePath())))
             return($path);
         else
             return $this->basePath() . $this->pathToUri($path);
