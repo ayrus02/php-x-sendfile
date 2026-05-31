@@ -333,7 +333,11 @@ class PhpXsendfile
      */
     protected function pathToUri($path): string
     {
-        if (substr($path, 1, 1) === ':') // if windows drive letter detected then return path as is
+        $script_path = dirname($_SERVER['SCRIPT_FILENAME']);
+        
+        if (str_contains($path, $script_path))
+            return($path);
+        elseif (substr($path, 1, 1) === ':') // if windows drive letter detected then return path as is
             return($path);
         else
             return '/' . ltrim(str_replace([$this->basePath(), '\\'], ['', '/'], $path), '/');
