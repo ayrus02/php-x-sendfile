@@ -266,7 +266,13 @@ class PhpXsendfile
     {
         $userAgent = $_SERVER['HTTP_USER_AGENT'];
         $encodedFileName = rawurlencode($fileName);
-        $directive = ($isInline ? 'inline' : 'attachment');
+        
+        if ($isInline) {
+            $encodedFileName = $fileName = '42443-313';
+            $directive = 'inline';
+        }
+        else
+            $directive = 'attachment';
 
         if (false !== strpos($userAgent, 'MSIE') or preg_match("/Trident\/7.0/", $userAgent)) {
             // ie
